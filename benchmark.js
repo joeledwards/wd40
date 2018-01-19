@@ -1,6 +1,7 @@
 const c = require('@buzuli/color')
 const durations = require('durations')
 const Squeaky = require('squeaky')
+const {Reader, Writer} = require('nsqjs')
 const throttle = require('@buzuli/throttle')
 
 const defaultHost = 'localhost'
@@ -55,11 +56,68 @@ function args () {
       default: defaultChannel,
       alias: ['c']
     })
+    .option('lib', {
+      type: 'string',
+      desc: 'the client library to use for NSQ (nsqjs | squeaky)',
+      default: 'squeaky',
+      alias: ['l']
+    })
     .argv
 }
 
-async function run () {
-  const {host, port, qos, messageSize, batchSize, topic, channel} = args()
+function subscriber ({host, port, qos, lib, topic, channel}, handler) {
+  if (lib === 'nsqjs') {
+    return new Promise((resolve, reject) => {
+      const address = `${host}:${port}`
+      console.log(`Creating ${lib} subscriber ${address}...`)
+      const sub = new Reader(topic, channel, {
+        nsqdTCPAddresses: [address],
+        maxInFlight: qos
+      })
+      sub.on('message', handler)
+      sub.on('error', error => reject(error))
+      sub.on('nsqd_connected', () => resolve())
+      sub.connect()
+    })
+  } else {
+    console.log(`Creating squeaky subscriber ${host}:${port}...`)
+    const sub = new Squeaky({host, port, concurrency: qos})
+    return sub.subscribe(topic, channel, handler)
+  }
+}
+
+function publisher ({host, port, lib, topic}) {
+  if (lib === 'nsqjs') {
+    return new Promise((resolve, reject) => {
+      console.log(`Creating ${lib} publisher ${host}:${port}...`)
+      const pub = new Writer(host, port)
+      const publish = (topic, data) => {
+        return new Promise((resolve, reject) => {
+          pub.publish(topic, data, (error) => {
+            if (error) {
+              reject(error)
+            } else {
+              resolve()
+            }
+          })
+        })
+      }
+      pub.on('error', error => reject(error))
+      pub.on('ready', () => resolve(publish))
+      pub.connect()
+    })
+  } else {
+    console.log(`Creating squeaky publisher ${host}:${port}...`)
+    const pub = new Squeaky({host, port})
+    return (topic, data) => {
+      return pub.publish(topic, data)
+    }
+  }
+}
+
+async function bench () {
+  const config = args()
+  const {host, port, qos, messageSize, batchSize, topic, channel, lib} = config
 
   require('log-a-log')
 
@@ -71,6 +129,7 @@ async function run () {
   console.info(`    batch size : ${batchSize}`)
   console.info(`         topic : ${topic}`)
   console.info(`       channel : ${channel}`)
+  console.info(`           lib : ${lib}`)
 
   const message = 'z'.repeat(messageSize)
 
@@ -92,23 +151,37 @@ async function run () {
       console.log(`sent=${sent} rcvd=${rcvd} offset=${sent-rcvd} (${watch} elapsed)`)
     }
   })
-  const sub = new Squeaky({host, port, concurrency: qos})
-  const pub = new Squeaky({host, port})
 
-  await sub.subscribe(topic, channel, msg => {
+  await subscriber(config, msg => {
     rcvd++
     notify()
     msg.finish()
   })
 
+  const pub = await publisher(config)
   const more = async () => {
-    await pub.publish(topic, batch)
-    sent+=batchSize
-    more()
+    try {
+      await pub(topic, batch)
+      sent+=batchSize
+      notify()
+      more()
+    } catch (error) {
+      console.error('Error in publisher:', error)
+      process.exit(1)
+    }
   }
 
   watch.start()
   more()
+}
+
+async function run () {
+  try {
+    await bench()
+  } catch (error) {
+    console.error('Error running benchmark:', error)
+    process.exit(1)
+  }
 }
 
 run()
