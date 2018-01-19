@@ -1,5 +1,3 @@
-require('log-a-log')
-
 const c = require('@buzuli/color')
 const durations = require('durations')
 const Squeaky = require('squeaky')
@@ -62,6 +60,9 @@ function args () {
 
 async function run () {
   const {host, port, qos, messageSize, batchSize, topic, channel} = args()
+
+  require('log-a-log')
+
   console.info(`Benchmarking:`)
   console.info(`          host : ${host}`)
   console.info(`          port : ${port}`)
