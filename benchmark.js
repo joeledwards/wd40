@@ -11,6 +11,9 @@ const defaultMessageSize = 64
 const defaultBatchSize = 1
 const defaultTopic = 'bench#ephemeral'
 const defaultChannel = 'wd40#ephemeral'
+const defaultLib = 'squeaky'
+const defaultPubLib = defaultLib
+const defaultSubLib = defaultLib
 
 function args () {
   return require('yargs')
@@ -59,17 +62,28 @@ function args () {
     .option('lib', {
       type: 'string',
       desc: 'the client library to use for NSQ (nsqjs | squeaky)',
-      default: 'squeaky',
+      default: defaultLib,
       alias: ['l']
+    })
+    .option('pub-lib', {
+      type: 'string',
+      desc: 'the client library to use for NSQ publishes (nsqjs | squeaky)',
+      alias: ['P']
+    })
+    .option('sub-lib', {
+      type: 'string',
+      desc: 'the client library to use for NSQ subscriptions (nsqjs | squeaky)',
+      alias: ['S']
     })
     .argv
 }
 
-function subscriber ({host, port, qos, lib, topic, channel}, handler) {
-  if (lib === 'nsqjs') {
+function subscriber ({host, port, qos, lib, subLib, topic, channel}, handler) {
+  const nsqLib = subLib || lib
+  if (nsqLib === 'nsqjs') {
     return new Promise((resolve, reject) => {
       const address = `${host}:${port}`
-      console.log(`Creating ${lib} subscriber ${address}...`)
+      console.log(`Creating ${nsqLib} subscriber ${address}...`)
       const sub = new Reader(topic, channel, {
         nsqdTCPAddresses: [address],
         maxInFlight: qos
@@ -86,10 +100,11 @@ function subscriber ({host, port, qos, lib, topic, channel}, handler) {
   }
 }
 
-function publisher ({host, port, lib, topic}) {
-  if (lib === 'nsqjs') {
+function publisher ({host, port, lib, pubLib, topic}) {
+  const nsqLib = pubLib || lib
+  if (nsqLib === 'nsqjs') {
     return new Promise((resolve, reject) => {
-      console.log(`Creating ${lib} publisher ${host}:${port}...`)
+      console.log(`Creating ${nsqLib} publisher ${host}:${port}...`)
       const pub = new Writer(host, port)
       const publish = (topic, data) => {
         return new Promise((resolve, reject) => {
@@ -117,7 +132,18 @@ function publisher ({host, port, lib, topic}) {
 
 async function bench () {
   const config = args()
-  const {host, port, qos, messageSize, batchSize, topic, channel, lib} = config
+  const {
+    host,
+    port,
+    qos,
+    messageSize,
+    batchSize,
+    topic,
+    channel,
+    lib,
+    pubLib,
+    subLib
+  } = config
 
   require('log-a-log')
 
@@ -129,7 +155,8 @@ async function bench () {
   console.info(`    batch size : ${batchSize}`)
   console.info(`         topic : ${topic}`)
   console.info(`       channel : ${channel}`)
-  console.info(`           lib : ${lib}`)
+  console.info(`       pub-lib : ${pubLib || lib}`)
+  console.info(`       sub-lib : ${subLib || lib}`)
 
   const message = 'z'.repeat(messageSize)
 
@@ -145,14 +172,18 @@ async function bench () {
   let watch = durations.stopwatch()
   let rcvd = 0
   let sent = 0
+  let retry = 0
 
   const notify = throttle({
     reportFunc: () => {
-      console.log(`sent=${sent} rcvd=${rcvd} offset=${sent-rcvd} (${watch} elapsed)`)
+      console.log(`sent=${sent} rcvd=${rcvd} retry=${retry} offset=${sent-rcvd} (${watch} elapsed)`)
     }
   })
 
   await subscriber(config, msg => {
+    if (msg.attempts > 1) {
+      retry++
+    }
     rcvd++
     notify()
     msg.finish()
