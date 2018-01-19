@@ -1,6 +1,6 @@
 {
   "name": "@buzuli/wd40",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "bin": {
     "wd40": "node bin/wd40"
