@@ -9,5 +9,7 @@ services:
     image: node:8.9.3-alpine
     volumes:
       - "./:/opt"
+    depends_on:
+      - "nsqd"
     working_dir: /opt
     command: npm start

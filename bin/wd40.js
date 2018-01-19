@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const c = require('@buzuli/color')
 const durations = require('durations')
 const Squeaky = require('squeaky')
