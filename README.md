@@ -2,32 +2,27 @@
 
 Benchmark for the `squeaky` NSQ library.
 
-## Setup
+## Installation
 
-* Install Node.js 8+
-* Install dependencies `npm i`
-* Install NSQ or Docker
+```shell
+$ npm install -g @buzuli/wd40
+```
 
 ## Running
 
-If you have NSQ installed and running locally:
+If you have NSQ installed and running locally bound to 4150:
 ```shell
-$ npm start
-```
-
-If you have Docker installed:
-```shell
-$ docker compose up
+$ wd40
 ```
 
 If you wish to test against another NSQ:
 ```shell
-$ node benchmark.js --host <custom-nsq-host>
+$ wd40 --host <custom-nsq-host>
 ```
 
 ## Options
 ```shell
-$ node benchmark.js  --help
+$ wd40  --help
 Options:
   --help              Show help                                        [boolean]
   --version           Show version number                              [boolean]
@@ -40,4 +35,10 @@ Options:
                                            [string] [default: "bench#ephemeral"]
   --channel, -c       channel on which to subscribe
                                             [string] [default: "wd40#ephemeral"]
+  --lib, -l           the client library to use for NSQ (nsqjs | squeaky)
+                                                   [string] [default: "squeaky"]
+  --pub-lib, -P       the client library to use for NSQ publishes (nsqjs |
+                      squeaky)                                          [string]
+  --sub-lib, -S       the client library to use for NSQ subscriptions (nsqjs |
+                      squeaky)                                          [string]
 ```
