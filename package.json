@@ -1,0 +1,19 @@
+{
+  "name": "wd40",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "nodemon benchmark.js --host nsqd --port 4150"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@buzuli/color": "^1.1.2",
+    "@buzuli/throttle": "^1.0.0",
+    "durations": "^3.3.5",
+    "log-a-log": "^3.3.2",
+    "nodemon": "^1.14.11",
+    "squeaky": "^1.0.2",
+    "yargs": "^10.1.1"
+  }
+}

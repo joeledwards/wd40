@@ -1,0 +1,13 @@
+version: "3.3"
+services:
+  nsqd:
+    image: nsqio/nsq
+    ports:
+      - "14150:4150"
+    command: nsqd
+  node:
+    image: node:8.9.3-alpine
+    volumes:
+      - "./:/opt"
+    working_dir: /opt
+    command: npm start
