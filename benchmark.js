@@ -12,11 +12,10 @@ const defaultBatchSize = 1
 const defaultTopic = 'bench#ephemeral'
 const defaultChannel = 'wd40#ephemeral'
 const defaultLib = 'squeaky'
-const defaultPubLib = defaultLib
-const defaultSubLib = defaultLib
 
 function args () {
   return require('yargs')
+    .env('WD40')
     .option('host', {
       type: 'string',
       desc: 'nsqd host',

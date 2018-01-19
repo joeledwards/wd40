@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "docker": "which docker-compose && docker-compose up",
     "start": "nodemon benchmark.js --host nsqd --port 4150"
   },
   "author": "",
