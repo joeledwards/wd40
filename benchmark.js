@@ -92,8 +92,8 @@ async function run () {
       console.log(`sent=${sent} rcvd=${rcvd} offset=${sent-rcvd} (${watch} elapsed)`)
     }
   })
-  const sub = new Squeaky({host})
-  const pub = new Squeaky({host})
+  const sub = new Squeaky({host, port, concurrency: qos})
+  const pub = new Squeaky({host, port})
 
   await sub.subscribe(topic, channel, msg => {
     rcvd++
