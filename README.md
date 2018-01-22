@@ -60,4 +60,4 @@ Options:
 ![](https://github.com/joeledwards/wd40/raw/master/screenshot.png)
 
 [npm-url]: https://www.npmjs.com/package/@buzuli/wd40
-[npm-image]: https://img.shields.io/npm/v/wd40.svg
+[npm-image]: https://img.shields.io/npm/v/@buzuli/wd40.svg
