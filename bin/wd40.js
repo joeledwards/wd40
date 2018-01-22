@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 const c = require('@buzuli/color')
+const childProcess = require('child_process')
 const durations = require('durations')
-const Squeaky = require('squeaky')
-const {Reader, Writer} = require('nsqjs')
+const {blue, green, orange, yellow} = require('@buzuli/color')
 const throttle = require('@buzuli/throttle')
 
 const defaultHost = 'localhost'
@@ -14,125 +14,167 @@ const defaultBatchSize = 1
 const defaultTopic = 'bench#ephemeral'
 const defaultChannel = 'wd40#ephemeral'
 const defaultLib = 'squeaky'
+const defaultPubCount = 1
+const defaultSubCount = 1
 
-function args () {
-  return require('yargs')
-    .env('WD40')
-    .option('host', {
-      type: 'string',
-      desc: 'nsqd host',
-      default: defaultHost,
-      alias: ['h']
-    })
-    .option('port', {
-      type: 'number',
-      desc: 'nsqd port',
-      default: defaultPort,
-      alias: ['p']
-    })
-    .option('qos', {
-      type: 'number',
-      desc: 'max outstanding messages',
-      default: defaultQos,
-      alias: ['q']
-    })
-    .option('message-size', {
-      type: 'number',
-      desc: 'bytes per message',
-      default: defaultMessageSize,
-      alias: ['m']
-    })
-    .option('batch-size', {
-      type: 'number',
-      desc: 'messages per batch',
-      default: defaultBatchSize,
-      alias: ['b']
-    })
-    .option('topic', {
-      type: 'string',
-      desc: 'topic on which to publish/subscribe',
-      default: defaultTopic,
-      alias: ['t']
-    })
-    .option('channel', {
-      type: 'string',
-      desc: 'channel on which to subscribe',
-      default: defaultChannel,
-      alias: ['c']
-    })
-    .option('lib', {
-      type: 'string',
-      desc: 'the client library to use for NSQ (nsqjs | squeaky)',
-      default: defaultLib,
-      alias: ['l']
-    })
-    .option('pub-lib', {
-      type: 'string',
-      desc: 'the client library to use for NSQ publishes (nsqjs | squeaky)',
-      alias: ['P']
-    })
-    .option('sub-lib', {
-      type: 'string',
-      desc: 'the client library to use for NSQ subscriptions (nsqjs | squeaky)',
-      alias: ['S']
-    })
-    .argv
-}
+const config = require('yargs')
+  .env('WD40')
+  .option('host', {
+    type: 'string',
+    desc: 'nsqd host',
+    default: defaultHost,
+    alias: ['h']
+  })
+  .option('port', {
+    type: 'number',
+    desc: 'nsqd port',
+    default: defaultPort,
+    alias: ['p']
+  })
+  .option('qos', {
+    type: 'number',
+    desc: 'max outstanding messages',
+    default: defaultQos,
+    alias: ['q']
+  })
+  .option('message-size', {
+    type: 'number',
+    desc: 'bytes per message',
+    default: defaultMessageSize,
+    alias: ['m']
+  })
+  .option('batch-size', {
+    type: 'number',
+    desc: 'messages per batch',
+    default: defaultBatchSize,
+    alias: ['b']
+  })
+  .option('topic', {
+    type: 'string',
+    desc: 'topic on which to publish/subscribe',
+    default: defaultTopic,
+    alias: ['t']
+  })
+  .option('channel', {
+    type: 'string',
+    desc: 'channel on which to subscribe',
+    default: defaultChannel,
+    alias: ['c']
+  })
+  .option('lib', {
+    type: 'string',
+    desc: 'the client library to use for NSQ (nsqjs | squeaky)',
+    default: defaultLib,
+    alias: ['l']
+  })
+  .option('pub-lib', {
+    type: 'string',
+    desc: 'the client library to use for NSQ publishes (nsqjs | squeaky)',
+    alias: ['P']
+  })
+  .option('sub-lib', {
+    type: 'string',
+    desc: 'the client library to use for NSQ subscriptions (nsqjs | squeaky)',
+    alias: ['S']
+  })
+  .option('publisher-count', {
+    type: 'number',
+    desc: 'number of publisher processes to launch',
+    default: defaultPubCount,
+    alias: ['pub-count', 'pc']
+  })
+  .option('subscriber-count', {
+    type: 'number',
+    desc: 'number of subscriber processes to launch',
+    default: defaultSubCount,
+    alias: ['sub-count', 'sc']
+  })
+  .argv
 
-function subscriber ({host, port, qos, lib, subLib, topic, channel}, handler) {
-  const nsqLib = subLib || lib
-  if (nsqLib === 'nsqjs') {
-    return new Promise((resolve, reject) => {
-      const address = `${host}:${port}`
-      console.log(`Creating ${nsqLib} subscriber ${address}...`)
-      const sub = new Reader(topic, channel, {
-        nsqdTCPAddresses: [address],
-        maxInFlight: qos
-      })
-      sub.on('message', handler)
-      sub.on('error', error => reject(error))
-      sub.on('nsqd_connected', () => resolve())
-      sub.connect()
-    })
-  } else {
-    console.log(`Creating squeaky subscriber ${host}:${port}...`)
-    const sub = new Squeaky({host, port, concurrency: qos})
-    return sub.subscribe(topic, channel, handler)
+let nextId = 0
+const children = {}
+const spawnPub = () => spawn({type: 'pub', module: './lib/pub'})
+const spawnSub = () => spawn({type: 'sub', module: './lib/sub'})
+
+// Spwan child process
+function spawn (meta) {
+  const child = {
+    ...meta,
+    id: nextId++,
+    process: childProcess.fork(meta.module)
   }
+  child.process.on('message', messageHandler(child))
+  children[child.id] = child
 }
 
-function publisher ({host, port, lib, pubLib, topic}) {
-  const nsqLib = pubLib || lib
-  if (nsqLib === 'nsqjs') {
-    return new Promise((resolve, reject) => {
-      console.log(`Creating ${nsqLib} publisher ${host}:${port}...`)
-      const pub = new Writer(host, port)
-      const publish = (topic, data) => {
-        return new Promise((resolve, reject) => {
-          pub.publish(topic, data, (error) => {
-            if (error) {
-              reject(error)
-            } else {
-              resolve()
-            }
-          })
-        })
-      }
-      pub.on('error', error => reject(error))
-      pub.on('ready', () => resolve(publish))
-      pub.connect()
-    })
-  } else {
-    console.log(`Creating squeaky publisher ${host}:${port}...`)
-    const pub = new Squeaky({host, port})
-    return (topic, data) => {
-      return pub.publish(topic, data)
+// Handle messages from child processes
+function messageHandler (child) {
+  return ({channel, message}) => {
+    switch (channel) {
+      case 'start': return startHandler(child)(message)
+      case 'report': return reportHandler(child)(message)
+      case 'end': return endHandler(child)(message)
+      default: return defaultHandler(child)(channel, message)
     }
   }
 }
 
-async function bench () {
-  const config = args()
+function startHandler (child) {
+  return () => {
+    console.info(`[${child.type}-${child.id}] Child process started.`)
+    child.process.send({channel: 'config', message: {...config, id: child.id}})
+  }
+}
+
+const watch = durations.stopwatch().start()
+let rcvd = 0
+let sent = 0
+let retry = 0
+const notify = throttle({
+  reportFunc: () => {
+    console.log(
+      `sent=${orange(sent)} rcvd=${orange(rcvd)} retry=${orange(retry)} offset=${orange(sent - rcvd)} (${blue(watch)})`
+    )
+  }
+})
+
+function reportHandler (child) {
+  return report => {
+    // TODO: info -> debug
+    console.debug(`[${child.type}-${child.id}] Child report received.`)
+    if (child.type === 'pub') {
+      sent += report.sent
+    } else if (child.type === 'sub') {
+      rcvd += report.rcvd
+      retry += report.retry
+    } else {
+      console.error(`Unrecognized type '${child.type}'!`)
+    }
+    notify()
+  }
+}
+
+function endHandler (child) {
+  return reason => {
+    console.info(`[${child.type}-${child.id}] Child process ended.`, reason || '')
+  }
+}
+
+function defaultHandler (child) {
+  return (channel, message) => {
+    console.error(
+      `[${child.type}-${child.id}] Received a notification from unrecognized channel '${channel}':\n`,
+      message
+    )
+  }
+}
+
+// Halt child process
+async function halt (child) {
+  child.send({channel: 'halt'})
+}
+
+async function benchmark () {
   const {
     host,
     port,
@@ -143,73 +185,38 @@ async function bench () {
     channel,
     lib,
     pubLib,
-    subLib
+    subLib,
+    pubCount,
+    subCount
   } = config
 
   require('log-a-log')
 
   console.info(`Benchmarking:`)
-  console.info(`          host : ${host}`)
-  console.info(`          port : ${port}`)
-  console.info(`           qos : ${qos}`)
-  console.info(`  message size : ${messageSize}`)
-  console.info(`    batch size : ${batchSize}`)
-  console.info(`         topic : ${topic}`)
-  console.info(`       channel : ${channel}`)
-  console.info(`       pub-lib : ${pubLib || lib}`)
-  console.info(`       sub-lib : ${subLib || lib}`)
+  console.info(`          host : ${yellow(host)}`)
+  console.info(`          port : ${orange(port)}`)
+  console.info(`           qos : ${orange(qos)}`)
+  console.info(`  message size : ${orange(messageSize)}`)
+  console.info(`    batch size : ${orange(batchSize)}`)
+  console.info(`         topic : ${green(topic)}`)
+  console.info(`       channel : ${green(channel)}`)
+  console.info(`       pub lib : ${green(pubLib || lib)}`)
+  console.info(`       sub lib : ${green(subLib || lib)}`)
+  console.info(`     pub count : ${orange(pubCount)}`)
+  console.info(`     sub count : ${orange(subCount)}`)
 
-  const message = 'z'.repeat(messageSize)
-
-  let batch = []
-  if (batchSize > 1) {
-    for (i = 0; i < batchSize; i++) {
-      batch.push(message)
-    }
-  } else {
-    batch = message
+  for (let s of new Array(subCount).fill(1)) {
+    await spawnSub()
   }
 
-  let watch = durations.stopwatch()
-  let rcvd = 0
-  let sent = 0
-  let retry = 0
-
-  const notify = throttle({
-    reportFunc: () => {
-      console.log(`sent=${sent} rcvd=${rcvd} retry=${retry} offset=${sent-rcvd} (${watch} elapsed)`)
-    }
-  })
-
-  await subscriber(config, msg => {
-    if (msg.attempts > 1) {
-      retry++
-    }
-    rcvd++
-    notify()
-    msg.finish()
-  })
-
-  const pub = await publisher(config)
-  const more = async () => {
-    try {
-      await pub(topic, batch)
-      sent+=batchSize
-      notify()
-      more()
-    } catch (error) {
-      console.error('Error in publisher:', error)
-      process.exit(1)
-    }
+  for (let p of new Array(pubCount).fill(1)) {
+    await spawnPub()
   }
-
-  watch.start()
-  more()
 }
 
 async function run () {
   try {
-    await bench()
+    await benchmark()
   } catch (error) {
     console.error('Error running benchmark:', error)
     process.exit(1)
@@ -217,3 +224,4 @@ async function run () {
 }
 
 run()
+
