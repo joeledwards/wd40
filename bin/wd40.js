@@ -16,6 +16,8 @@ const defaultChannel = 'wd40#ephemeral'
 const defaultLib = 'squeaky'
 const defaultPubCount = 1
 const defaultSubCount = 1
+const defaultMinReportDelay = 1000
+const defaultMaxReportDelay = 5000
 
 const config = require('yargs')
   .env('WD40')
@@ -89,6 +91,18 @@ const config = require('yargs')
     default: defaultSubCount,
     alias: ['sub-count', 'sc']
   })
+  .option('min-report-delay', {
+    type: 'number',
+    desc: 'minimum delay (in ms) between reports',
+    default: defaultMinReportDelay,
+    alias: ['d']
+  })
+  .option('max-report-delay', {
+    type: 'number',
+    desc: 'maximum delay (in ms) between reports',
+    default: defaultMaxReportDelay,
+    alias: ['D']
+  })
   .argv
 
 let nextId = 0
@@ -131,6 +145,8 @@ let rcvd = 0
 let sent = 0
 let retry = 0
 const notify = throttle({
+  minDelay: config.minReportDelay,
+  maxDelay: config.maxReportDelay,
   reportFunc: () => {
     console.log(
       `sent=${orange(sent)} rcvd=${orange(rcvd)} retry=${orange(retry)} offset=${orange(sent - rcvd)} (${blue(watch)})`
@@ -187,23 +203,27 @@ async function benchmark () {
     pubLib,
     subLib,
     pubCount,
-    subCount
+    subCount,
+    minReportDelay,
+    maxReportDelay
   } = config
 
   require('log-a-log')
 
   console.info(`Benchmarking:`)
-  console.info(`          host : ${yellow(host)}`)
-  console.info(`          port : ${orange(port)}`)
-  console.info(`           qos : ${orange(qos)}`)
-  console.info(`  message size : ${orange(messageSize)}`)
-  console.info(`    batch size : ${orange(batchSize)}`)
-  console.info(`         topic : ${green(topic)}`)
-  console.info(`       channel : ${green(channel)}`)
-  console.info(`       pub lib : ${green(pubLib || lib)}`)
-  console.info(`       sub lib : ${green(subLib || lib)}`)
-  console.info(`     pub count : ${orange(pubCount)}`)
-  console.info(`     sub count : ${orange(subCount)}`)
+  console.info(`             host : ${yellow(host)}`)
+  console.info(`             port : ${orange(port)}`)
+  console.info(`              qos : ${orange(qos)}`)
+  console.info(`     message size : ${orange(messageSize)}`)
+  console.info(`       batch size : ${orange(batchSize)}`)
+  console.info(`            topic : ${green(topic)}`)
+  console.info(`          channel : ${green(channel)}`)
+  console.info(`          pub lib : ${green(pubLib || lib)}`)
+  console.info(`          sub lib : ${green(subLib || lib)}`)
+  console.info(`        pub count : ${orange(pubCount)}`)
+  console.info(`        sub count : ${orange(subCount)}`)
+  console.info(` min report delay : ${orange(durations.millis(minReportDelay))}`)
+  console.info(` max report delay : ${orange(durations.millis(maxReportDelay))}`)
 
   for (let s of new Array(subCount).fill(1)) {
     await spawnSub()
