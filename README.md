@@ -1,5 +1,7 @@
 # wd40
 
+[![NPM version][npm-image]][npm-url]
+
 Benchmark for the `squeaky` NSQ library.
 
 ## Installation
@@ -57,3 +59,5 @@ Options:
 
 ![](https://github.com/joeledwards/wd40/raw/master/screenshot.png)
 
+[npm-url]: https://www.npmjs.com/package/@buzuli/wd40
+[npm-image]: https://img.shields.io/npm/v/wd40.svg
