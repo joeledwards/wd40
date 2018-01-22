@@ -112,9 +112,12 @@ const spawnSub = () => spawn({type: 'sub', module: './lib/sub'})
 
 // Spwan child process
 function spawn (meta) {
+  const id = nextId++
+  const alias = `${id}-${meta.type}`
   const child = {
     ...meta,
-    id: nextId++,
+    id,
+    alias,
     process: childProcess.fork(meta.module)
   }
   child.process.on('message', messageHandler(child))
@@ -135,8 +138,8 @@ function messageHandler (child) {
 
 function startHandler (child) {
   return () => {
-    console.info(`[${child.type}-${child.id}] Child process started.`)
-    child.process.send({channel: 'config', message: {...config, id: child.id}})
+    console.info(`[${child.alias}] Child process started.`)
+    child.process.send({channel: 'config', message: {...config, id: child.id, alias: child.alias}})
   }
 }
 
@@ -157,7 +160,7 @@ const notify = throttle({
 function reportHandler (child) {
   return report => {
     // TODO: info -> debug
-    console.debug(`[${child.type}-${child.id}] Child report received.`)
+    console.debug(`[${child.alias}] Child report received.`)
     if (child.type === 'pub') {
       sent += report.sent
     } else if (child.type === 'sub') {
@@ -172,14 +175,14 @@ function reportHandler (child) {
 
 function endHandler (child) {
   return reason => {
-    console.info(`[${child.type}-${child.id}] Child process ended.`, reason || '')
+    console.info(`[${child.alias}] Child process ended.`, reason || '')
   }
 }
 
 function defaultHandler (child) {
   return (channel, message) => {
     console.error(
-      `[${child.type}-${child.id}] Received a notification from unrecognized channel '${channel}':\n`,
+      `[${child.alias}] Received a notification from unrecognized channel '${channel}':\n`,
       message
     )
   }
@@ -208,7 +211,7 @@ async function benchmark () {
     maxReportDelay
   } = config
 
-  require('log-a-log')
+  require('log-a-log').init({alias: 'main'})
 
   console.info(`Benchmarking:`)
   console.info(`             host : ${yellow(host)}`)
