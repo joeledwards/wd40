@@ -24,21 +24,32 @@ $ wd40 --host <custom-nsq-host>
 ```shell
 $ wd40  --help
 Options:
-  --help              Show help                                        [boolean]
-  --version           Show version number                              [boolean]
-  --host, -h          nsqd host                  [string] [default: "localhost"]
-  --port, -p          nsqd port                         [number] [default: 4150]
-  --qos, -q           max outstanding messages             [number] [default: 1]
-  --message-size, -m  bytes per message                   [number] [default: 64]
-  --batch-size, -b    messages per batch                   [number] [default: 1]
-  --topic, -t         topic on which to publish/subscribe
+  --help                                 Show help                     [boolean]
+  --version                              Show version number           [boolean]
+  --host, -h                             nsqd host
+                                                 [string] [default: "localhost"]
+  --port, -p                             nsqd port      [number] [default: 4150]
+  --qos, -q                              max outstanding messages
+                                                           [number] [default: 1]
+  --message-size, -m                     bytes per message[number] [default: 64]
+  --batch-size, -b                       messages per batch[number] [default: 1]
+  --topic, -t                            topic on which to publish/subscribe
                                            [string] [default: "bench#ephemeral"]
-  --channel, -c       channel on which to subscribe
+  --channel, -c                          channel on which to subscribe
                                             [string] [default: "wd40#ephemeral"]
-  --lib, -l           the client library to use for NSQ (nsqjs | squeaky)
+  --lib, -l                              the client library to use for NSQ
+                                         (nsqjs | squeaky)
                                                    [string] [default: "squeaky"]
-  --pub-lib, -P       the client library to use for NSQ publishes (nsqjs |
-                      squeaky)                                          [string]
-  --sub-lib, -S       the client library to use for NSQ subscriptions (nsqjs |
-                      squeaky)                                          [string]
+  --pub-lib, -P                          the client library to use for NSQ
+                                         publishes (nsqjs | squeaky)    [string]
+  --sub-lib, -S                          the client library to use for NSQ
+                                         subscriptions (nsqjs | squeaky)[string]
+  --publisher-count, --pub-count, --pc   number of publisher processes to launch
+                                                           [number] [default: 1]
+  --subscriber-count, --sub-count, --sc  number of subscriber processes to
+                                         launch            [number] [default: 1]
+  --min-report-delay, -d                 minimum delay (in ms) between reports
+                                                        [number] [default: 1000]
+  --max-report-delay, -D                 maximum delay (in ms) between reports
+                                                        [number] [default: 5000]
 ```
