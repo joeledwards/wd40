@@ -53,3 +53,7 @@ Options:
   --max-report-delay, -D                 maximum delay (in ms) between reports
                                                         [number] [default: 5000]
 ```
+
+
+![](https://github.com/joeledwards/wd40/raw/master/screenshot.png)
+
