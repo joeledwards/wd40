@@ -225,8 +225,8 @@ async function benchmark () {
   console.info(`          sub lib : ${green(subLib || lib)}`)
   console.info(`        pub count : ${orange(pubCount)}`)
   console.info(`        sub count : ${orange(subCount)}`)
-  console.info(` min report delay : ${orange(durations.millis(minReportDelay))}`)
-  console.info(` max report delay : ${orange(durations.millis(maxReportDelay))}`)
+  console.info(` min report delay : ${blue(durations.millis(minReportDelay))}`)
+  console.info(` max report delay : ${blue(durations.millis(maxReportDelay))}`)
 
   for (let s of new Array(subCount).fill(1)) {
     await spawnSub()
