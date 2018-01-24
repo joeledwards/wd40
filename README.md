@@ -54,6 +54,10 @@ Options:
                                                         [number] [default: 1000]
   --max-report-delay, -D                 maximum delay (in ms) between reports
                                                         [number] [default: 5000]
+  --log-mode, -L                         set log-a-log mode
+                                                       [string] [default: "utc"]
+  --brighten-my-day, -B                  brighten my day (overrides --log-mode)
+                                                      [boolean] [default: false]
 ```
 
 
