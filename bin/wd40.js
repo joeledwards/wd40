@@ -103,6 +103,18 @@ const config = require('yargs')
     default: defaultMaxReportDelay,
     alias: ['D']
   })
+  .option('log-mode', {
+    type: 'string',
+    desc: 'set log-a-log mode',
+    default: 'utc',
+    alias: ['L']
+  })
+  .option('brighten-my-day', {
+    type: 'boolean',
+    desc: 'brighten my day (overrides --log-mode)',
+    default: false,
+    alias: ['B']
+  })
   .argv
 
 let nextId = 0
@@ -194,6 +206,7 @@ async function halt (child) {
 }
 
 async function benchmark () {
+  const alias = 'main'
   const {
     host,
     port,
@@ -208,10 +221,12 @@ async function benchmark () {
     pubCount,
     subCount,
     minReportDelay,
-    maxReportDelay
+    maxReportDelay,
+    logMode,
+    brightenMyDay
   } = config
 
-  require('log-a-log').init({alias: 'main'})
+  require('log-a-log').init({alias, mode: brightenMyDay ? 'pony' : logMode})
 
   console.info(`Benchmarking:`)
   console.info(`             host : ${yellow(host)}`)
