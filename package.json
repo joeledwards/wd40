@@ -12,13 +12,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@buzuli/color": "^1.1.2",
+    "@buzuli/color": "^1.2.0",
     "@buzuli/throttle": "^1.0.0",
-    "durations": "^3.3.5",
+    "durations": "^3.4.1",
     "log-a-log": "^3.3.2",
-    "nodemon": "^1.14.11",
+    "nodemon": "^1.14.12",
     "nsqjs": "^0.10.0",
-    "squeaky": "^1.0.3",
-    "yargs": "^10.1.1"
+    "squeaky": "^1.1.2",
+    "yargs": "^10.1.2"
   }
 }

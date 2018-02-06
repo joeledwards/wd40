@@ -130,6 +130,7 @@ function spawn (meta) {
     ...meta,
     id,
     alias,
+    ready: false,
     process: childProcess.fork(meta.module)
   }
   child.process.on('message', messageHandler(child))
@@ -140,10 +141,27 @@ function spawn (meta) {
 function messageHandler (child) {
   return ({channel, message}) => {
     switch (channel) {
+      case 'ready': return readyHandler(child)(message)
       case 'start': return startHandler(child)(message)
       case 'report': return reportHandler(child)(message)
       case 'end': return endHandler(child)(message)
       default: return defaultHandler(child)(channel, message)
+    }
+  }
+}
+
+function childrenReady () {
+  return Object.values(children).reduce((acc, child) => acc && child.ready, true)
+}
+
+function readyHandler (child) {
+  return () => {
+    console.info(`[${child.alias}] Child process is ready to run.`)
+    child.ready = true
+
+    if (childrenReady()) {
+      console.info(`All child processes ready. Sending run instruction...`)
+      Object.values(children).forEach(child => child.process.send({channel: 'run', message: 'run'}))
     }
   }
 }
@@ -171,7 +189,6 @@ const notify = throttle({
 
 function reportHandler (child) {
   return report => {
-    // TODO: info -> debug
     console.debug(`[${child.alias}] Child report received.`)
     if (child.type === 'pub') {
       sent += report.sent
@@ -244,11 +261,11 @@ async function benchmark () {
   console.info(` max report delay : ${blue(durations.millis(maxReportDelay))}`)
 
   for (let s of new Array(subCount).fill(1)) {
-    await spawnSub()
+    spawnSub()
   }
 
   for (let p of new Array(pubCount).fill(1)) {
-    await spawnPub()
+    spawnPub()
   }
 }
 
