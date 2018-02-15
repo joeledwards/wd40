@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const c = require('@buzuli/color')
 const childProcess = require('child_process')
-const durations = require('durations')
 const {blue, green, orange, yellow} = require('@buzuli/color')
+const durations = require('durations')
+const path = require('path')
 const throttle = require('@buzuli/throttle')
 
 const defaultHost = 'localhost'
@@ -117,10 +117,14 @@ const config = require('yargs')
   })
   .argv
 
+function childModule (name) {
+  return path.resolve(__dirname, '..', 'lib', name)
+}
+
 let nextId = 0
 const children = {}
-const spawnPub = () => spawn({type: 'pub', module: './lib/pub'})
-const spawnSub = () => spawn({type: 'sub', module: './lib/sub'})
+const spawnPub = () => spawn({type: 'pub', module: childModule('pub')})
+const spawnSub = () => spawn({type: 'sub', module: childModule('sub')})
 
 // Spwan child process
 function spawn (meta) {
