@@ -115,6 +115,16 @@ const config = require('yargs')
     default: false,
     alias: ['B']
   })
+  .option('deflate', {
+    type: 'boolean',
+    desc: 'enable zlib level 6 compression',
+    default: false
+  })
+  .option('snappy', {
+    type: 'boolean',
+    desc: 'enable snappy compression',
+    default: false,
+  })
   .argv
 
 function childModule (name) {
@@ -244,7 +254,9 @@ async function benchmark () {
     minReportDelay,
     maxReportDelay,
     logMode,
-    brightenMyDay
+    brightenMyDay,
+    snappy,
+    deflate
   } = config
 
   require('log-a-log').init({alias, mode: brightenMyDay ? 'pony' : logMode})
@@ -263,6 +275,7 @@ async function benchmark () {
   console.info(`        sub count : ${orange(subCount)}`)
   console.info(` min report delay : ${blue(durations.millis(minReportDelay))}`)
   console.info(` max report delay : ${blue(durations.millis(maxReportDelay))}`)
+  console.info(`      compression : ${yellow(snappy ? 'snappy' : deflate ? 'zlib' : 'none')}`)
 
   for (let s of new Array(subCount).fill(1)) {
     spawnSub()
