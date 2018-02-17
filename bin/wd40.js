@@ -125,6 +125,22 @@ const config = require('yargs')
     default: false,
     alias: ['B']
   })
+  .option('max-reconnects', {
+    type: 'number',
+    desc: 'maximum (re)connect attempts before giving up (squeaky only)',
+    default: 10,
+    alias: ['mr']
+  })
+  .option('base-reconnect-delay', {
+    desc: 'base backoff delay in milliseconds (squeaky only)',
+    default: 1000,
+    alias: ['brd']
+  })
+  .option('max-reconnect-delay', {
+    desc: 'max computed backoff delay in milliseconds (squeaky only)',
+    default: 15000,
+    alias: ['mrd']
+  })
   .argv
 
 function childModule (name) {
@@ -256,26 +272,32 @@ async function benchmark () {
     logMode,
     brightenMyDay,
     snappy,
-    deflate
+    deflate,
+    maxReconnects,
+    baseReconnectDelay,
+    maxReconnectDelay
   } = config
 
   require('log-a-log').init({alias, mode: brightenMyDay ? 'pony' : logMode})
 
   console.info(`Benchmarking:`)
-  console.info(`             host : ${yellow(host)}`)
-  console.info(`             port : ${orange(port)}`)
-  console.info(`              qos : ${orange(qos)}`)
-  console.info(`            topic : ${green(topic)}`)
-  console.info(`          channel : ${green(channel)}`)
-  console.info(`     message size : ${orange(messageSize)}`)
-  console.info(`       batch size : ${orange(batchSize)}`)
-  console.info(`      compression : ${yellow(snappy ? 'snappy' : deflate ? 'zlib' : 'none')}`)
-  console.info(`        pub count : ${orange(pubCount)}`)
-  console.info(`        sub count : ${orange(subCount)}`)
-  console.info(`          pub lib : ${green(pubLib || lib)}`)
-  console.info(`          sub lib : ${green(subLib || lib)}`)
-  console.info(` min report delay : ${blue(durations.millis(minReportDelay))}`)
-  console.info(` max report delay : ${blue(durations.millis(maxReportDelay))}`)
+  console.info(`                host : ${yellow(host)}`)
+  console.info(`                port : ${orange(port)}`)
+  console.info(`                 qos : ${orange(qos)}`)
+  console.info(`               topic : ${green(topic)}`)
+  console.info(`             channel : ${green(channel)}`)
+  console.info(`        message size : ${orange(messageSize)}`)
+  console.info(`          batch size : ${orange(batchSize)}`)
+  console.info(`         compression : ${yellow(snappy ? 'snappy' : deflate ? 'zlib' : 'none')}`)
+  console.info(`     publisher count : ${orange(pubCount)}`)
+  console.info(`    subscriber count : ${orange(subCount)}`)
+  console.info(`             pub lib : ${green(pubLib || lib)}`)
+  console.info(`             sub lib : ${green(subLib || lib)}`)
+  console.info(`    min report delay : ${blue(durations.millis(minReportDelay))}`)
+  console.info(`    max report delay : ${blue(durations.millis(maxReportDelay))}`)
+  console.info(`      max reconnects : ${orange(maxReconnects)}`)
+  console.info(`base reconnect delay : ${blue(durations.millis(baseReconnectDelay))}`)
+  console.info(` max reconnect delay : ${blue(durations.millis(maxReconnectDelay))}`)
 
   for (let s of new Array(subCount).fill(1)) {
     spawnSub()
