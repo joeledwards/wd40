@@ -39,6 +39,18 @@ const config = require('yargs')
     default: defaultQos,
     alias: ['q']
   })
+  .option('topic', {
+    type: 'string',
+    desc: 'topic on which to publish/subscribe',
+    default: defaultTopic,
+    alias: ['t']
+  })
+  .option('channel', {
+    type: 'string',
+    desc: 'channel on which to subscribe',
+    default: defaultChannel,
+    alias: ['c']
+  })
   .option('message-size', {
     type: 'number',
     desc: 'bytes per message',
@@ -51,17 +63,27 @@ const config = require('yargs')
     default: defaultBatchSize,
     alias: ['b']
   })
-  .option('topic', {
-    type: 'string',
-    desc: 'topic on which to publish/subscribe',
-    default: defaultTopic,
-    alias: ['t']
+  .option('deflate', {
+    type: 'boolean',
+    desc: 'enable zlib level 6 compression',
+    default: false
   })
-  .option('channel', {
-    type: 'string',
-    desc: 'channel on which to subscribe',
-    default: defaultChannel,
-    alias: ['c']
+  .option('snappy', {
+    type: 'boolean',
+    desc: 'enable snappy compression',
+    default: false,
+  })
+  .option('publisher-count', {
+    type: 'number',
+    desc: 'number of publisher processes to launch',
+    default: defaultPubCount,
+    alias: ['pub-count', 'pc']
+  })
+  .option('subscriber-count', {
+    type: 'number',
+    desc: 'number of subscriber processes to launch',
+    default: defaultSubCount,
+    alias: ['sub-count', 'sc']
   })
   .option('lib', {
     type: 'string',
@@ -78,18 +100,6 @@ const config = require('yargs')
     type: 'string',
     desc: 'the client library to use for NSQ subscriptions (nsqjs | squeaky)',
     alias: ['S']
-  })
-  .option('publisher-count', {
-    type: 'number',
-    desc: 'number of publisher processes to launch',
-    default: defaultPubCount,
-    alias: ['pub-count', 'pc']
-  })
-  .option('subscriber-count', {
-    type: 'number',
-    desc: 'number of subscriber processes to launch',
-    default: defaultSubCount,
-    alias: ['sub-count', 'sc']
   })
   .option('min-report-delay', {
     type: 'number',
@@ -114,16 +124,6 @@ const config = require('yargs')
     desc: 'brighten my day (overrides --log-mode)',
     default: false,
     alias: ['B']
-  })
-  .option('deflate', {
-    type: 'boolean',
-    desc: 'enable zlib level 6 compression',
-    default: false
-  })
-  .option('snappy', {
-    type: 'boolean',
-    desc: 'enable snappy compression',
-    default: false,
   })
   .argv
 
@@ -265,17 +265,17 @@ async function benchmark () {
   console.info(`             host : ${yellow(host)}`)
   console.info(`             port : ${orange(port)}`)
   console.info(`              qos : ${orange(qos)}`)
-  console.info(`     message size : ${orange(messageSize)}`)
-  console.info(`       batch size : ${orange(batchSize)}`)
   console.info(`            topic : ${green(topic)}`)
   console.info(`          channel : ${green(channel)}`)
-  console.info(`          pub lib : ${green(pubLib || lib)}`)
-  console.info(`          sub lib : ${green(subLib || lib)}`)
+  console.info(`     message size : ${orange(messageSize)}`)
+  console.info(`       batch size : ${orange(batchSize)}`)
+  console.info(`      compression : ${yellow(snappy ? 'snappy' : deflate ? 'zlib' : 'none')}`)
   console.info(`        pub count : ${orange(pubCount)}`)
   console.info(`        sub count : ${orange(subCount)}`)
+  console.info(`          pub lib : ${green(pubLib || lib)}`)
+  console.info(`          sub lib : ${green(subLib || lib)}`)
   console.info(` min report delay : ${blue(durations.millis(minReportDelay))}`)
   console.info(` max report delay : ${blue(durations.millis(maxReportDelay))}`)
-  console.info(`      compression : ${yellow(snappy ? 'snappy' : deflate ? 'zlib' : 'none')}`)
 
   for (let s of new Array(subCount).fill(1)) {
     spawnSub()
