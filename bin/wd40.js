@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 const childProcess = require('child_process')
-const {blue, green, orange, yellow} = require('@buzuli/color')
+const {blue, green, orange, purple, yellow} = require('@buzuli/color')
 const durations = require('durations')
 const path = require('path')
 const throttle = require('@buzuli/throttle')
+const EventEmitter = require('events')
 
 const defaultHost = 'localhost'
 const defaultPort = 4150
@@ -151,6 +152,7 @@ let nextId = 0
 const children = {}
 const spawnPub = () => spawn({type: 'pub', module: childModule('pub')})
 const spawnSub = () => spawn({type: 'sub', module: childModule('sub')})
+const events = new EventEmitter()
 
 // Spwan child process
 function spawn (meta) {
@@ -164,6 +166,7 @@ function spawn (meta) {
     process: childProcess.fork(meta.module)
   }
   child.process.on('message', messageHandler(child))
+  child.process.on('close', closeHandler(child))
   children[child.id] = child
 }
 
@@ -174,7 +177,7 @@ function messageHandler (child) {
       case 'ready': return readyHandler(child)(message)
       case 'start': return startHandler(child)(message)
       case 'report': return reportHandler(child)(message)
-      case 'end': return endHandler(child)(message)
+      case 'error': return errorHandler(child)(message)
       default: return defaultHandler(child)(channel, message)
     }
   }
@@ -184,9 +187,15 @@ function childrenReady () {
   return Object.values(children).reduce((acc, child) => acc && child.ready, true)
 }
 
+function errorHandler (child) {
+  return error => {
+    console.error(`child ${yellow(child.alias)} reported an error :`, error)
+  }
+}
+
 function readyHandler (child) {
   return () => {
-    console.info(`[${child.alias}] Child process is ready to run.`)
+    console.info(`child ${yellow(child.alias)} is ready to run`)
     child.ready = true
 
     if (childrenReady()) {
@@ -198,7 +207,7 @@ function readyHandler (child) {
 
 function startHandler (child) {
   return () => {
-    console.info(`[${child.alias}] Child process started.`)
+    console.info(`child ${yellow(child.alias)} started`)
     child.process.send({channel: 'config', message: {...config, id: child.id, alias: child.alias}})
   }
 }
@@ -217,9 +226,27 @@ const notify = throttle({
   }
 })
 
+// Resolves when all children have halted
+function allChildrenComplete () {
+  return new Promise(resolve => {
+    events.on('end.child', child => {
+      delete children[child.id]
+      child.process.removeAllListeners()
+
+      if (Object.keys(children).length == 0) {
+        console.info('All children have completed. Halting.')
+        notify({force: true, halt: true})
+        resolve()
+      } else {
+        Object.values(children).forEach(halt)
+      }
+    })
+  })
+}
+
 function reportHandler (child) {
   return report => {
-    console.debug(`[${child.alias}] Child report received.`)
+    console.debug(`child report received from child ${yellow(child.alias)}`)
     if (child.type === 'pub') {
       sent += report.sent
     } else if (child.type === 'sub') {
@@ -232,16 +259,17 @@ function reportHandler (child) {
   }
 }
 
-function endHandler (child) {
-  return reason => {
-    console.info(`[${child.alias}] Child process ended.`, reason || '')
+function closeHandler (child) {
+  return (code, signal) => {
+    console.info(`child ${yellow(child.alias)} exited : status=${orange(code)} signal=${purple(signal)}`)
+    setImmediate(() => events.emit('end.child', child))
   }
 }
 
 function defaultHandler (child) {
   return (channel, message) => {
     console.error(
-      `[${child.alias}] Received a notification from unrecognized channel '${channel}':\n`,
+      `received a notification from ${yellow(child.alias)} on unrecognized channel '${channel}':\n`,
       message
     )
   }
@@ -249,7 +277,8 @@ function defaultHandler (child) {
 
 // Halt child process
 async function halt (child) {
-  child.send({channel: 'halt'})
+  console.log(`instructing child ${yellow(child.alias)} to halt`)
+  child.process.send({channel: 'halt'})
 }
 
 async function benchmark () {
@@ -306,6 +335,10 @@ async function benchmark () {
   for (let p of new Array(pubCount).fill(1)) {
     spawnPub()
   }
+
+  await allChildrenComplete()
+
+  console.info('Done.')
 }
 
 async function run () {
