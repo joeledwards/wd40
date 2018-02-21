@@ -3,7 +3,7 @@ services:
   nsqd:
     image: nsqio/nsq
     ports:
-      - "14150:4150"
+      - "4150:4150"
     command: nsqd
   node:
     image: node:8.9.3-alpine
