@@ -7,6 +7,9 @@ const path = require('path')
 const throttle = require('@buzuli/throttle')
 const EventEmitter = require('events')
 
+process.on('uncaughtException', error => console.log('Un-caught exception:', error))
+process.on('unhandledRejection', error => console.log('Un-handled rejection:', error))
+
 const defaultHost = 'localhost'
 const defaultPort = 4150
 const defaultQos = 1
