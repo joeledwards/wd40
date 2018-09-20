@@ -249,7 +249,7 @@ function allChildrenComplete () {
 
 function reportHandler (child) {
   return report => {
-    console.debug(`child report received from child ${yellow(child.alias)}`)
+    console.verbose(`child report received from child ${yellow(child.alias)}`)
     if (child.type === 'pub') {
       sent += report.sent
     } else if (child.type === 'sub') {
@@ -310,7 +310,7 @@ async function benchmark () {
     maxReconnectDelay
   } = config
 
-  require('log-a-log').init({alias, mode: brightenMyDay ? 'pony' : logMode})
+  require('log-a-log')({alias, mode: brightenMyDay ? 'pony' : logMode})
 
   console.info(`Benchmarking:`)
   console.info(`                host : ${yellow(host)}`)
