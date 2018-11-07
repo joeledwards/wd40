@@ -1,6 +1,6 @@
 {
   "name": "@buzuli/wd40",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "",
   "bin": {
     "wd40": "./bin/wd40.js"
