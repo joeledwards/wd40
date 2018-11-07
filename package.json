@@ -3,7 +3,7 @@
   "version": "1.6.4",
   "description": "",
   "bin": {
-    "wd40": "node bin/wd40"
+    "wd40": "./bin/wd40.js"
   },
   "scripts": {
     "docker": "which docker-compose && docker-compose up",
