@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@buzuli/color": "^1.3.1",
+    "@buzuli/scheduler": "^2.0.0",
     "@buzuli/throttle": "^2.0.2",
     "durations": "^3.4.1",
     "log-a-log": "^6.0.0",

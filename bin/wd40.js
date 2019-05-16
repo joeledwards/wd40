@@ -136,14 +136,28 @@ const config = require('yargs')
     alias: ['mr']
   })
   .option('base-reconnect-delay', {
+    type: 'number',
     desc: 'base backoff delay in milliseconds (squeaky only)',
     default: 1000,
     alias: ['brd']
   })
   .option('max-reconnect-delay', {
+    type: 'number',
     desc: 'max computed backoff delay in milliseconds (squeaky only)',
     default: 15000,
     alias: ['mrd']
+  })
+  .option('ack-delay', {
+    type: 'number',
+    desc: 'delay acknowledgements n milliseconds (> 0 to enable)',
+    default: 0,
+    alias: ['ad']
+  })
+  .option('remind-interval', {
+    type: 'number',
+    desc: 'during an ack delay, notify the server every n milliseconds that the message is still being processed',
+    default: '5000',
+    alias: ['ri']
   })
   .argv
 
